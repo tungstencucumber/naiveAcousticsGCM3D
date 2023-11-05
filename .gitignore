@@ -1,0 +1,3 @@
+*.vtr
+.idea/*
+__pycache__/*
