@@ -165,7 +165,8 @@ class NaiveAcousticsSolver3D:
                             -0.5*(self.source_y_end_point - self.source_y_start_point):0.5*(self.source_y_end_point - self.source_y_start_point),
                             -0.5*(self.source_z_end_point - self.source_z_start_point):0.5*(self.source_z_end_point - self.source_z_start_point)
                             ]
-        mask = (u_border[0]**2 + u_border[1]**2 < 0.25*(self.source_x_end_point - self.source_x_start_point)**2)
+        mask = (u_border[0]**2 + u_border[1]**2 < 0.25*(self.source_x_end_point - self.source_x_start_point)**2) 
+                # * (u_border[0]**2 + u_border[1]**2 >= 0.25)
         u_prev[
             self.source_x_start_point:self.source_x_end_point,
             self.source_y_start_point:self.source_y_end_point,
@@ -188,8 +189,7 @@ class NaiveAcousticsSolver3D:
                                  "vy": u_prev[:, :, :, 1].T.ravel(),
                                  "vz": u_prev[:, :, :, 2].T.ravel(),
                                  "p": u_prev[:, :, :, 3].T.ravel(),
-                                 "gor'kov": gorkov_potential.T.ravel(),
-                                 "Cp": self.cp.T.ravel()})
+                                 "gor'kov": gorkov_potential.T.ravel()})
 
         # Spacial steps for characterictics (they are constant, since the model is linear).
         steps = self.tau * self.cp

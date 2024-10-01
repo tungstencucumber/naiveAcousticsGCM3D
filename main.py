@@ -9,44 +9,65 @@ from acoustics_solver_3d import NaiveAcousticsSolver3D
 num_points_x = 35
 num_points_y = 35
 num_points_z = 65
-space_step = 10
+space_step = 4.
 x_size = space_step * (num_points_x - 1)
 y_size = space_step * (num_points_y - 1)
 z_size = space_step * (num_points_z - 1)
 # wavelength -- no less than 4 * space_step
-wavelength = 200
+wavelength = 84.
 
 # signal recording parameters
 total_signal_recording_time = 0.6
 time_step_between_records = 0.0015
 
 # rheology limits
-rho_min = 2000
-rho_max = 5000
-cp_min = 2000
-cp_max = 4000
+rho_min = 1000
+rho_max = 1500
+cp_min = 1500
+cp_max = 2000
 
 dump_dir = "."
 ###
 emitter_radius = 3.858
-reflector_radius = 5.
-cut_offset = 1.
-cut_radius = 13.
-
+reflector_radius = 5.092
+cut_offset = 1.886
+cut_radius = 12.244
 
 def f(R):
     # Option 1: create manually a mask for simple bright inclusion
     mask = np.zeros(shape=(num_points_x, num_points_y, num_points_z), dtype=float)
+
     relfector_shape = np.mgrid[-0.5 * num_points_x:0.5 * num_points_x,
                         -0.5 * num_points_y:0.5 * num_points_y,
-                        0:num_points_z] * space_step
-    mask += (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) < R[1] * wavelength / (2 * np.pi)) * \
-            (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2 + \
-                    (relfector_shape[2] - R[2] * wavelength / (2 * np.pi))**2) >= R[3] * wavelength / (2 * np.pi))
+                        0:num_points_z] * space_step * (2 * np.pi) / wavelength
     
-    outer_body = (relfector_shape[0] - 0.7 * R[1] * wavelength / (2 * np.pi))**2 + relfector_shape[1]**2 + \
-                    (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 < (2. * wavelength / (2 * np.pi))**2
-    # mask += outer_body * 0.05
+    # reflector = ((np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) > 1.1 * R[0]) + \
+    #             (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) < 1./ 2.0**3)) * \
+    #             (relfector_shape[2] > 2 * space_step * (2 * np.pi) / wavelength) + \
+    #             (relfector_shape[2] >= (num_points_z - 2) * space_step * (2 * np.pi) / wavelength)          
+    
+    # Отражатель со сферическим вырезом
+    reflector = (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) < R[1] ) * \
+            (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2 + \
+                    (relfector_shape[2] - R[2])**2) >= R[3] )
+    
+    # Тор НЕПОФИКШЕН
+    # reflector = ((relfector_shape[0]**2 + relfector_shape[1]**2 + (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 + \
+    #                (0.9 * R[1] * wavelength / (2 * np.pi))**2 - (2. * wavelength / (2 * np.pi))**2 )**2 < \
+    #                 4 * (0.9 * R[1] * wavelength / (2 * np.pi))**2 * (relfector_shape[0]**2 + relfector_shape[1]**2))
+    
+    # Три шара НЕПОФИКШЕН
+    # reflector = (relfector_shape[0] - 0.7 * R[1] * wavelength / (2 * np.pi))**2 + \
+    #               relfector_shape[1]**2 + \
+    #              (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 < (2. * wavelength / (2 * np.pi))**2 
+    # reflector += (relfector_shape[0] - np.cos(2. * np.pi / 3.) * 0.7 * R[1] * wavelength / (2 * np.pi))**2 + \
+    #              (relfector_shape[1] - np.sin(2. * np.pi / 3.) * 0.7 * R[1] * wavelength / (2 * np.pi))**2 + \
+    #              (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 < (2. * wavelength / (2 * np.pi))**2
+    # reflector += (relfector_shape[0] - np.cos(4. * np.pi / 3.) * 0.7 * R[1] * wavelength / (2 * np.pi))**2 + \
+    #              (relfector_shape[1] - np.sin(4. * np.pi / 3.) * 0.7 * R[1] * wavelength / (2 * np.pi))**2 + \
+    #              (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 < (2. * wavelength / (2 * np.pi))**2
+    
+    mask += reflector
 
     # # Option 2: get (0; 1] mask representing layered structure
     # # WARN: take a look first at https://github.com/avasyukov/quasi_marmousi and review the parameters
