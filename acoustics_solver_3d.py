@@ -225,11 +225,36 @@ class NaiveAcousticsSolver3D:
                 u_next, inv_next = self.do_split_step(u_next, Ux, Ux1, c_neg, c_pos, i, direction=0)
 
                 # TODO: emitting and reflecting top border
-                form = np.min(self.cp) * np.min(self.cp) * np.min(self.rho) * mask[:, :, 0] * np.cos(2 * np.pi * self.T / self.wavelength * np.min(self.cp))
-                p0 = u_next[:, :, 0, 3]
-                p0[self.source_x_start_point:self.source_x_end_point, self.source_y_start_point:self.source_y_end_point][mask[:, :, 0]] = form[mask[:, :, 0]]
-                u_next[:, :, 0, 3] = p0
-                u_next[:, :, 0, 2] = inv_next[:, :, 0, 1] + p0 / (self.cp[:, :, 0] * self.rho[:, :, 0])
+                # form = np.min(self.cp) * np.min(self.cp) * np.min(self.rho) * mask[:, :, 0] * np.cos(2 * np.pi * self.T / self.wavelength * np.min(self.cp))
+                # p0 = u_next[:, :, 0, 3]
+                # p0[self.source_x_start_point:self.source_x_end_point, self.source_y_start_point:self.source_y_end_point][mask[:, :, 0]] = form[mask[:, :, 0]]
+                # u_next[:, :, 0, 3] = p0
+                # u_next[:, :, 0, 2] = inv_next[:, :, 0, 1] + p0 / (self.cp[:, :, 0] * self.rho[:, :, 0])
+                u_next[0, :, :, 3] 
+                domain = np.mgrid[-0.5 * self.num_points_x:0.5 * self.num_points_x,
+                        -0.5 * self.num_points_y:0.5 * self.num_points_y,
+                        0:self.num_points_z] * self.hz * (2 * np.pi) / self.wavelength
+                phi = 2.*np.pi/3.
+                pulse_mask = ((np.sqrt(domain[0]**2 + domain[1]**2) < 4.3) * \
+                    (np.sqrt(domain[0]**2 + domain[1]**2) > 3.7)) * \
+                    (domain[2] > 32 * self.hz * (2 * np.pi) / self.wavelength) * \
+                    (domain[2] < 60 * self.hz * (2 * np.pi) / self.wavelength) \
+                    + \
+                    ((np.sqrt((domain[0] * np.cos(phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.sin(phi))**2 + domain[1]**2) < 4.3) * \
+                    (np.sqrt((domain[0] * np.cos(phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.sin(phi))**2 + domain[1]**2) > 3.7)) * \
+                    (-domain[0] * np.sin(phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.cos(phi) > 2 * self.hz * (2 * np.pi) / self.wavelength) * \
+                    (-domain[0] * np.sin(phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.cos(phi) < 24 * self.hz * (2 * np.pi) / self.wavelength) \
+                    + \
+                    ((np.sqrt((domain[0] * np.cos(-phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.sin(-phi))**2 + domain[1]**2) < 4.3) * \
+                    (np.sqrt((domain[0] * np.cos(-phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.sin(-phi))**2 + domain[1]**2) > 3.7)) * \
+                    (-domain[0] * np.sin(-phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.cos(-phi) > 2 * self.hz * (2 * np.pi) / self.wavelength) * \
+                    (-domain[0] * np.sin(-phi) + (domain[2] - 30 * self.hz * (2 * np.pi) / self.wavelength) * np.cos(-phi) < 24 * self.hz * (2 * np.pi) / self.wavelength)
+                form = np.min(self.cp) * np.min(self.cp) * np.min(self.rho) * pulse_mask * np.cos(2 * np.pi * self.T / self.wavelength * np.min(self.cp))
+                if self.dump_vtk and not i:
+                    gridToVTK(os.path.join(self.dump_dir, "emitters"), self.x, self.y, self.z,
+                      pointData={"pulse": form.T.ravel()})
+                u_next[:, :, :, 3][pulse_mask] = form[pulse_mask]
+                u_next[:, :, :, 2][pulse_mask] = inv_next[:, :, :, 1][pulse_mask] + form[pulse_mask] / (self.cp[pulse_mask] * self.rho[pulse_mask])
 
                 buffer[:, :, -i-1] = np.copy(u_next[:, :, 1, 3])
 

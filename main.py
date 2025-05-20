@@ -6,15 +6,15 @@ import multiprocessing
 from acoustics_solver_3d import NaiveAcousticsSolver3D
 
 # geometry sizes
-num_points_x = 35
-num_points_y = 35
+num_points_x = 50
+num_points_y = 50
 num_points_z = 65
 space_step = 4.
 x_size = space_step * (num_points_x - 1)
 y_size = space_step * (num_points_y - 1)
 z_size = space_step * (num_points_z - 1)
 # wavelength -- no less than 4 * space_step
-wavelength = 84.
+wavelength = 42. # 84.
 
 # signal recording parameters
 total_signal_recording_time = 0.6
@@ -40,16 +40,16 @@ def f(R):
     relfector_shape = np.mgrid[-0.5 * num_points_x:0.5 * num_points_x,
                         -0.5 * num_points_y:0.5 * num_points_y,
                         0:num_points_z] * space_step * (2 * np.pi) / wavelength
-    
+    # Отражатель-цилиндр
     # reflector = ((np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) > 1.1 * R[0]) + \
     #             (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) < 1./ 2.0**3)) * \
     #             (relfector_shape[2] > 2 * space_step * (2 * np.pi) / wavelength) + \
-    #             (relfector_shape[2] >= (num_points_z - 2) * space_step * (2 * np.pi) / wavelength)          
+    #             (relfector_shape[2] >= (num_points_z - 2) * space_step * (2 * np.pi) / wavelength)
     
     # Отражатель со сферическим вырезом
-    reflector = (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) < R[1] ) * \
-            (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2 + \
-                    (relfector_shape[2] - R[2])**2) >= R[3] )
+    # reflector = (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2) < R[1] ) * \
+    #         (np.sqrt(relfector_shape[0]**2 + relfector_shape[1]**2 + \
+    #                 (relfector_shape[2] - R[2])**2) >= R[3] )
     
     # Тор НЕПОФИКШЕН
     # reflector = ((relfector_shape[0]**2 + relfector_shape[1]**2 + (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 + \
@@ -67,7 +67,7 @@ def f(R):
     #              (relfector_shape[1] - np.sin(4. * np.pi / 3.) * 0.7 * R[1] * wavelength / (2 * np.pi))**2 + \
     #              (relfector_shape[2] - 0.5 * R[3] * wavelength / (2 * np.pi))**2 < (2. * wavelength / (2 * np.pi))**2
     
-    mask += reflector
+    # mask += reflector
 
     # # Option 2: get (0; 1] mask representing layered structure
     # # WARN: take a look first at https://github.com/avasyukov/quasi_marmousi and review the parameters
@@ -79,7 +79,7 @@ def f(R):
 
     # excitation pulse space size
     source_width = R[0] * wavelength / np.pi
-    source_length = 4 * time_step_between_records
+    source_length = 0 # 4 * time_step_between_records
 
     solver = NaiveAcousticsSolver3D(x_size, y_size, z_size, cp, rho,
                                     total_signal_recording_time, time_step_between_records, wavelength,
